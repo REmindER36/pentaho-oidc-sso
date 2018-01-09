@@ -7,13 +7,20 @@ package com.arena.sso.oidc.consumer;
  */
 public class UserData
 {
+    private String tenantId;
     private String userName;
     private String[] roles;
     
-    public UserData(String userName, String[] roles)
+    public UserData(String tenantId, String userName, String[] roles)
     {
+        this.tenantId = tenantId;
         this.userName = userName;
         this.roles = roles;
+    }
+    
+    public String getTenantId()
+    {
+        return tenantId;
     }
     
     public String getUserName()

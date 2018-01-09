@@ -3,8 +3,12 @@ package com.arena.sso;
 import com.arena.sso.oidc.OAuthUserDetailsService;
 import org.pentaho.platform.api.engine.security.userroledao.IUserRoleDao;
 import org.pentaho.platform.api.engine.security.userroledao.NotFoundException;
+import org.pentaho.platform.api.mt.ITenant;
+import org.pentaho.platform.api.mt.ITenantManager;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
+import org.pentaho.platform.engine.security.SecurityHelper;
+import org.pentaho.platform.repository2.unified.jcr.JcrTenantUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -28,6 +32,8 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
     private static final Logger log = LoggerFactory.getLogger(SsoUserDetailsService.class);
     //~ Instance fields ================================================================================================
 
+    private ITenantManager tenantManager;
+    
     private UserDetailsService pentahoUserDetailsService;
 
     private IUserRoleDao userRoleDao;
@@ -48,7 +54,13 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
             roles = new String[] {};
         }
     }
-
+    
+    @Override
+    public UserDetails loadUser(String user, String[] roles) throws UsernameNotFoundException
+    {
+        return loadUser(null, user, roles);
+    }
+    
     /**
      * {@inheritDoc}
      *
@@ -56,19 +68,26 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
      * Should be used only for SSO authentication.
      */
     @Override
-    public UserDetails loadUserByUsernameWithRoles(String username, String[] roles) throws UsernameNotFoundException, DataAccessException {
-        UserDetails user;
+    public UserDetails loadUser(String tenantId, String username, String[] roles) throws UsernameNotFoundException, DataAccessException {
         
-
+        UserDetails user;
+        ITenant tenant = null;
+        
         try {
+            //log.debug("Try get tenant with name: {}", tenantId);
+            //tenant = SecurityHelper.getInstance().runAsSystem(() -> tenantManager.getTenant(tenantId));
+            if (tenant == null){
+                tenant = SecurityHelper.getInstance().runAsSystem(() ->tenantManager.createTenant(JcrTenantUtils.getTenant(), tenantId, "Administrator", tenantId + "Authenticated", tenantId + "Anonymous"));
+            }
+            
             for (String role: roles)
             {
-                if (userRoleDao.getRole(null, role) == null)
+                if (userRoleDao.getRole(tenant, role) == null)
                 {
-                    userRoleDao.createRole(null, role, "", new String[]{});
+                    userRoleDao.createRole(tenant, role, "", new String[]{});
                 }
             }
-            userRoleDao.setUserRoles(null, username, roles);
+            userRoleDao.setUserRoles(tenant, username, roles);
             user = pentahoUserDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException|NotFoundException e) {
 
@@ -77,8 +96,12 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
             }
             
             String password = PasswordGenerator.generate();
-            userRoleDao.createUser(null, username, password, "", roles );
+            userRoleDao.createUser(tenant, username, password, "", roles );
             user = pentahoUserDetailsService.loadUserByUsername(username);
+        } catch (Exception ex)
+        {
+            log.error("Error while login user: ", ex);
+            throw new RuntimeException(ex);
         }
 
         return user;
@@ -87,9 +110,14 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
     @Override
     public UserDetails loadUserByUsername(String user) throws UsernameNotFoundException
     {
-        return loadUserByUsernameWithRoles(user, this.roles);
+        return loadUser(null, user, this.roles);
     }
-
+    
+    public void setTenantManager(ITenantManager tenantManager)
+    {
+        this.tenantManager = tenantManager;
+    }
+    
     public void setUserRoleDao(IUserRoleDao userRoleDao) {
         this.userRoleDao = userRoleDao;
     }

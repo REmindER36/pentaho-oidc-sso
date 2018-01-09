@@ -29,7 +29,6 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
     private static final Logger log = LoggerFactory.getLogger(OAuthOnlyTokenConsumerImpl.class);
     private static final String ACCESS_TOKEN_COOKIE_NAME = "sessionService";
     
-    private String authenticationTokenUri;
     private String openIdClaim;
     
     @Override
@@ -42,8 +41,9 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
     public UserData handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException
     {
         String username;
+        String tenantId;
         String[] roles;
-        
+        String authenticationTokenUri;
         try
         {
             Cookie globalsCookie = Arrays.stream(request.getCookies())
@@ -56,8 +56,16 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
             JSONObject ssoInfo = new JSONObject(ssoInfoJson);
             String accessToken = ssoInfo.getString("_accessToken");
             Jwt token = JwtHelper.decode(accessToken);
-            roles = parseRoles(token.getClaims());
-            log.info("[AUTH-SSO] 2. Request 'userinfo' to :" + authenticationTokenUri);
+            String tokenJson = token.getClaims();
+            roles = parseRoles(tokenJson);
+            log.info("[AUTH-SSO] 1.1 Parsed roles from Access Token: '{}'.", roles);
+            tenantId = parseTenant(tokenJson);
+            log.info("[AUTH-SSO] 1.2 Parsed tenant id from Access Token: '{}'.", tenantId);
+            
+            JSONObject tokenData = new JSONObject(token.getClaims());
+            authenticationTokenUri = tokenData.getString("iss") + "/protocol/openid-connect/userinfo";
+            
+            log.info("[AUTH-SSO] 2 Request 'userinfo' to :" + authenticationTokenUri);
             HttpResponse responseUsername = sendGetRequest(authenticationTokenUri, accessToken);
             String cont = EntityUtils.toString(responseUsername.getEntity());
             JSONObject jsonContent = new JSONObject(cont);
@@ -73,7 +81,7 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
             log.info("[AUTH-SSO] RESPONSE ERROR :" + e);
             throw new OAuthConsumerException("The exception occurred when tried communicate with identity provider service", e);
         }
-        return new UserData(username, roles);
+        return new UserData(tenantId, username, roles);
     }
     
     private String[] parseRoles(String token) throws JSONException
@@ -88,6 +96,13 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
         return result;
     }
     
+    private String parseTenant(String token) throws JSONException
+    {
+        JSONObject tokenData = new JSONObject(token);
+        String tenantName = tokenData.getString("tenant-id");
+        return tenantName;
+    }
+    
     private HttpResponse sendGetRequest(String authenticationTokenFullUri, String accessToken) throws IOException
     {
         HttpClient httpclient = HttpClients.createDefault();
@@ -97,11 +112,6 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
         log.info("[AUTH-SSO] SEND modified HTTPGET for :" + authenticationTokenFullUri + " with Auth Bearer:" + accessToken);
         //Execute and return the response.
         return httpclient.execute(httpget);
-    }
-    
-    public void setAuthenticationTokenUri(String authenticationTokenUri)
-    {
-        this.authenticationTokenUri = authenticationTokenUri;
     }
     
     public void setOpenIdClaim(String openIdClaim)

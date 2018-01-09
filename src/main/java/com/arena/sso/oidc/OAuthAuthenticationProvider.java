@@ -41,7 +41,7 @@ public class OAuthAuthenticationProvider implements AuthenticationProvider, Init
         OAuthPreAuthenticationToken preAuthenticationToken = (OAuthPreAuthenticationToken) authentication;
 
         UserData identity = preAuthenticationToken.getUserData();
-        UserDetails userDetails = userDetailsService.loadUserByUsernameWithRoles(identity.getUserName(),identity.getRoles());
+        UserDetails userDetails = userDetailsService.loadUser(identity.getTenantId(), identity.getUserName(),identity.getRoles());
         return new OAuthAuthenticationToken(this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities()), identity.getUserName());
     }
 

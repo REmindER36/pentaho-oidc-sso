@@ -11,5 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  */
 public interface OAuthUserDetailsService extends UserDetailsService
 {
-    UserDetails loadUserByUsernameWithRoles(String user, String[] roles) throws UsernameNotFoundException;
+    UserDetails loadUser(String user, String[] roles) throws UsernameNotFoundException;
+    
+    UserDetails loadUser(String tenantId, String userName, String[] roles) throws UsernameNotFoundException;
 }

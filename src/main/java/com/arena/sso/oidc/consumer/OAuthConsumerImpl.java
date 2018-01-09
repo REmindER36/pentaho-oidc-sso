@@ -222,7 +222,7 @@ public class OAuthConsumerImpl implements OAuthConsumer, InitializingBean
                 throw new OAuthConsumerException("The exception occurred when tried communicate with identity provider service", e);
             }
         }
-        return new UserData(username, roles);
+        return new UserData(null, username, roles);
     }
     
     /**
