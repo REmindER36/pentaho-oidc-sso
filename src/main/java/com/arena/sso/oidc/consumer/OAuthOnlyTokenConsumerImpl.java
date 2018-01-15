@@ -41,7 +41,7 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
     public UserData handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException
     {
         String username;
-        String tenantId;
+        String tenantId = null;
         String[] roles;
         String authenticationTokenUri;
         try
@@ -59,7 +59,13 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
             String tokenJson = token.getClaims();
             roles = parseRoles(tokenJson);
             log.info("[AUTH-SSO] 1.1 Parsed roles from Access Token: '{}'.", roles);
-            tenantId = parseTenant(tokenJson);
+            try
+            {
+                tenantId = parseTenant(tokenJson);
+            } catch (JSONException e)
+            {
+                log.error("Error parse tenant-id from Access Token", e);
+            }
             log.info("[AUTH-SSO] 1.2 Parsed tenant id from Access Token: '{}'.", tenantId);
             
             JSONObject tokenData = new JSONObject(token.getClaims());
@@ -96,12 +102,14 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
         return result;
     }
     
+    
     private String parseTenant(String token) throws JSONException
     {
         JSONObject tokenData = new JSONObject(token);
         String tenantName = tokenData.getString("tenant-id");
         return tenantName;
     }
+    
     
     private HttpResponse sendGetRequest(String authenticationTokenFullUri, String accessToken) throws IOException
     {

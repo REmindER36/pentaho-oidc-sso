@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataAccessException;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -56,7 +57,7 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
     }
     
     @Override
-    public UserDetails loadUser(String user, String[] roles) throws UsernameNotFoundException
+    public UserDetails loadUser(String user, String[] roles) throws Exception
     {
         return loadUser(null, user, roles);
     }
@@ -68,7 +69,8 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
      * Should be used only for SSO authentication.
      */
     @Override
-    public UserDetails loadUser(String tenantId, String username, String[] roles) throws UsernameNotFoundException, DataAccessException {
+    public UserDetails loadUser(String tenantId, String username, String[] roles) throws Exception
+    {
         
         UserDetails user;
         ITenant tenant = null;
@@ -76,15 +78,17 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
         try {
             //log.debug("Try get tenant with name: {}", tenantId);
             //tenant = SecurityHelper.getInstance().runAsSystem(() -> tenantManager.getTenant(tenantId));
+            /*
             if (tenant == null){
                 tenant = SecurityHelper.getInstance().runAsSystem(() ->tenantManager.createTenant(JcrTenantUtils.getTenant(), tenantId, "Administrator", tenantId + "Authenticated", tenantId + "Anonymous"));
             }
-            
+            */
             for (String role: roles)
             {
                 if (userRoleDao.getRole(tenant, role) == null)
                 {
-                    userRoleDao.createRole(tenant, role, "", new String[]{});
+                    SecurityHelper.getInstance().runAsSystem(() -> userRoleDao.createRole(tenant, role, "", new String[]{}));
+                    log.info("Role {} created", role);
                 }
             }
             userRoleDao.setUserRoles(tenant, username, roles);
@@ -96,7 +100,7 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
             }
             
             String password = PasswordGenerator.generate();
-            userRoleDao.createUser(tenant, username, password, "", roles );
+            SecurityHelper.getInstance().runAsSystem(() -> userRoleDao.createUser(tenant, username, password, "", roles ));
             user = pentahoUserDetailsService.loadUserByUsername(username);
         } catch (Exception ex)
         {
@@ -110,7 +114,14 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
     @Override
     public UserDetails loadUserByUsername(String user) throws UsernameNotFoundException
     {
-        return loadUser(null, user, this.roles);
+        try
+        {
+            return loadUser(null, user, this.roles);
+        }
+        catch (Exception e)
+        {
+            throw new UsernameNotFoundException(e.getMessage());
+        }
     }
     
     public void setTenantManager(ITenantManager tenantManager)
