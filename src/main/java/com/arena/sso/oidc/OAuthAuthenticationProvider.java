@@ -49,7 +49,7 @@ public class OAuthAuthenticationProvider implements AuthenticationProvider, Init
         }
         catch (Exception e)
         {
-            throw new OAuthConsumerException(e.getMessage());
+            throw new OAuthConsumerException("User loading failed", e);
         }
         return new OAuthAuthenticationToken(this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities()), identity.getUserName());
     }

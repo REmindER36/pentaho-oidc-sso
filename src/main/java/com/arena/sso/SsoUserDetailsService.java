@@ -8,12 +8,9 @@ import org.pentaho.platform.api.mt.ITenantManager;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.security.SecurityHelper;
-import org.pentaho.platform.repository2.unified.jcr.JcrTenantUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.dao.DataAccessException;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -120,7 +117,7 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
         }
         catch (Exception e)
         {
-            throw new UsernameNotFoundException(e.getMessage());
+            throw new UsernameNotFoundException("User " + user + " not found.", e);
         }
     }
     
