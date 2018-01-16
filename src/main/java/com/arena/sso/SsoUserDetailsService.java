@@ -91,7 +91,7 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
                     log.info("Role {} created", role);
                 }
             }
-            userRoleDao.setUserRoles(tenant, username, roles);
+            SecurityHelper.getInstance().runAsSystem(() -> { userRoleDao.setUserRoles(tenant, username, roles); return null;} );
             user = pentahoUserDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException|NotFoundException e) {
 
