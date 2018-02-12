@@ -1,6 +1,7 @@
 package com.arena.sso.oidc.consumer;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
@@ -38,9 +39,10 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
     }
     
     @Override
-    public UserData handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException
+    public AccessToken handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException
     {
         String username;
+        String accessToken;
         String tenantId = null;
         String[] roles;
         String authenticationTokenUri;
@@ -54,7 +56,7 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
             String ssoInfoJson = URLDecoder.decode(globalsCookie.getValue(), "UTF-8");
             log.info("[AUTH-SSO] 1. Get Access Token From cookies. '{}' = {}", ACCESS_TOKEN_COOKIE_NAME, ssoInfoJson);
             JSONObject ssoInfo = new JSONObject(ssoInfoJson);
-            String accessToken = ssoInfo.getString("_accessToken");
+            accessToken = ssoInfo.getString("_accessToken");
             Jwt token = JwtHelper.decode(accessToken);
             String tokenJson = token.getClaims();
             roles = parseRoles(tokenJson);
@@ -73,21 +75,15 @@ public class OAuthOnlyTokenConsumerImpl implements OAuthConsumer
             
             log.info("[AUTH-SSO] 2 Request 'userinfo' to :" + authenticationTokenUri);
             HttpResponse responseUsername = sendGetRequest(authenticationTokenUri, accessToken);
-            String cont = EntityUtils.toString(responseUsername.getEntity());
-            JSONObject jsonContent = new JSONObject(cont);
-            log.info("[AUTH-SSO] 3. JSON Response is:" + jsonContent);
-            String userWemail = jsonContent.getString(openIdClaim);
-            String[] userparts = userWemail.split("@");
-            log.info("[AUTH-SSO] 4 Response is:" + userparts[0]);
-            username = userparts[0];
-            
+            if (responseUsername.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
+                throw new OAuthConsumerException("Error Validate access token.");
         }
         catch (Exception e)
         {
             log.info("[AUTH-SSO] RESPONSE ERROR :" + e);
             throw new OAuthConsumerException("The exception occurred when tried communicate with identity provider service", e);
         }
-        return new UserData(tenantId, username, roles);
+        return new AccessToken(accessToken);
     }
     
     private String[] parseRoles(String token) throws JSONException

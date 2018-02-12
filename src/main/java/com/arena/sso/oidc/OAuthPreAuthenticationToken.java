@@ -1,6 +1,6 @@
 package com.arena.sso.oidc;
 
-import com.arena.sso.oidc.consumer.UserData;
+import com.arena.sso.oidc.consumer.AccessToken;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 
 /**
@@ -8,15 +8,15 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
  */
 public class OAuthPreAuthenticationToken extends PreAuthenticatedAuthenticationToken {
 
-    private UserData userData;
+    private AccessToken accessToken;
     
-    public OAuthPreAuthenticationToken(UserData userData) {
-        super(userData.getUserName(), "");
-        this.userData = userData;
+    public OAuthPreAuthenticationToken(AccessToken accessToken) {
+        super(accessToken.getPrefferedUserName(), "");
+        this.accessToken = accessToken;
     }
     
-    public UserData getUserData()
+    public AccessToken getAccessToken()
     {
-        return userData;
+        return accessToken;
     }
 }

@@ -1,7 +1,9 @@
 package com.arena.sso.oidc;
 
 import com.arena.sso.oidc.consumer.OAuthConsumerException;
-import com.arena.sso.oidc.consumer.UserData;
+import com.arena.sso.oidc.consumer.AccessToken;
+import org.pentaho.platform.api.engine.IPentahoSession;
+import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -41,17 +43,20 @@ public class OAuthAuthenticationProvider implements AuthenticationProvider, Init
         }
         OAuthPreAuthenticationToken preAuthenticationToken = (OAuthPreAuthenticationToken) authentication;
 
-        UserData identity = preAuthenticationToken.getUserData();
-        UserDetails userDetails = null;
+        AccessToken accessToken = preAuthenticationToken.getAccessToken();
+        UserDetails userDetails;
         try
         {
-            userDetails = userDetailsService.loadUser(identity.getTenantId(), identity.getUserName(),identity.getRoles());
+            userDetails = userDetailsService.loadUser(accessToken.getTenantId(), accessToken.getPrefferedUserName(),accessToken.getRoles());
+            IPentahoSession pentahoSession = PentahoSessionHolder.getSession();
+            pentahoSession.setAttribute("access.token", accessToken.toString());
+            log.info("Session Access Token: {}", pentahoSession.getAttribute("access.token"));
         }
         catch (Exception e)
         {
             throw new OAuthConsumerException("User loading failed", e);
         }
-        return new OAuthAuthenticationToken(this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities()), identity.getUserName());
+        return new OAuthAuthenticationToken(this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities()), accessToken.getPrefferedUserName());
     }
 
     @Override

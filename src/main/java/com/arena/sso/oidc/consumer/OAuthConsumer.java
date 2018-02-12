@@ -20,6 +20,6 @@ public interface OAuthConsumer {
      * @return  user identity.
      * @throws OAuthConsumerException in case of any problem occurs during processing
      */
-    UserData handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException;
+    AccessToken handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException;
 	
 }

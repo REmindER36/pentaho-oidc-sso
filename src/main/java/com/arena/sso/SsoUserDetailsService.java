@@ -1,6 +1,7 @@
 package com.arena.sso;
 
 import com.arena.sso.oidc.OAuthUserDetailsService;
+import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.security.userroledao.IUserRoleDao;
 import org.pentaho.platform.api.engine.security.userroledao.NotFoundException;
 import org.pentaho.platform.api.mt.ITenant;
@@ -104,7 +105,6 @@ public class SsoUserDetailsService implements OAuthUserDetailsService, Initializ
             log.error("Error while login user: ", ex);
             throw new RuntimeException(ex);
         }
-
         return user;
     }
     

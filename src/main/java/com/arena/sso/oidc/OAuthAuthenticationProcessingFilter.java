@@ -1,18 +1,15 @@
 package com.arena.sso.oidc;
 
 import com.arena.sso.oidc.consumer.OAuthConsumer;
-import com.arena.sso.oidc.consumer.OAuthConsumerException;
-import com.arena.sso.oidc.consumer.UserData;
+import com.arena.sso.oidc.consumer.AccessToken;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 
 /**
@@ -47,7 +44,7 @@ public class OAuthAuthenticationProcessingFilter extends AbstractAuthenticationP
     {
         OAuthPreAuthenticationToken preAuthToken;
         try {
-            UserData identity = consumer.handleAuthenticationRequest(httpServletRequest);
+            AccessToken identity = consumer.handleAuthenticationRequest(httpServletRequest);
             preAuthToken = new OAuthPreAuthenticationToken(identity);
         } catch (Exception e) {
             throw new AuthenticationServiceException("Consumer error", e);

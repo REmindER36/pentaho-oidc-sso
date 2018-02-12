@@ -110,7 +110,7 @@ public class OAuthConsumerImpl implements OAuthConsumer, InitializingBean
     }
     
     @Override
-    public UserData handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException
+    public AccessToken handleAuthenticationRequest(HttpServletRequest request) throws OAuthConsumerException
     {
         
         String username = null;
@@ -222,7 +222,7 @@ public class OAuthConsumerImpl implements OAuthConsumer, InitializingBean
                 throw new OAuthConsumerException("The exception occurred when tried communicate with identity provider service", e);
             }
         }
-        return new UserData(null, username, roles);
+        return new AccessToken(accessToken);
     }
     
     /**
